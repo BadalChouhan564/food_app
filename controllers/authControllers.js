@@ -1,4 +1,6 @@
 const userModel = require("../models/userModel");
+const bcrypt = require("bcryptjs");
+const JWT = require("jsonwebtoken");
 
 // REGISTER
 const registerConteoller = async (req, res) => {
@@ -11,6 +13,7 @@ const registerConteoller = async (req, res) => {
         message: "please provide All Fields",
       });
     }
+
     // CHECK USER
     const existing = await userModel.findOne({ email });
     if (existing) {
@@ -19,12 +22,21 @@ const registerConteoller = async (req, res) => {
         message: "Email Already Registerd please Login",
       });
     }
+    // HAshing PAssword
+    var salt = bcrypt.genSaltSync(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
     //create new User
-    const user = await userModel.create({userName,email,password,address,phone})
+    const user = await userModel.create({
+      userName,
+      email,
+      password: hashedPassword,
+      address,
+      phone,
+    });
     return res.status(201).send({
       success: true,
-      message: "Succesfully Registerd"
-    })
+      message: "Succesfully Registerd",
+    });
   } catch (error) {
     console.log(error);
     res.status(500).send({
@@ -37,9 +49,9 @@ const registerConteoller = async (req, res) => {
 
 // LOGIN
 
-const loginController = async (req,res)=>{
+const loginController = async (req, res) => {
   try {
-    const {email,password} = req.body
+    const { email, password } = req.body;
     // validation
     if (!email || !password) {
       return res.status(500).send({
@@ -49,18 +61,32 @@ const loginController = async (req,res)=>{
     }
 
     // CHECK USER
-    const user =  await userModel.findOne({email:email,password:password})
-    if(!user){
+    const user = await userModel.findOne({ email });
+    if (!user) {
       return res.status(404).send({
         success: false,
         message: "USer not Found",
       });
     }
+    // Check USer password || compare Password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(500).send({
+        success: false,
+        message: "Invalid credential",
+      });
+    }
+    // Token
+    const token = JWT.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+    user.password = undefined;
     res.status(200).send({
-      success:true,
-      message:'Login Succesfully',
-      user
-    })
+      success: true,
+      message: "Login Succesfully",
+      token,
+      user,
+    });
   } catch (error) {
     console.log(error);
     res.status(500).send({
@@ -69,6 +95,6 @@ const loginController = async (req,res)=>{
       error,
     });
   }
-}
+};
 
-module.exports = { registerConteoller,loginController };
+module.exports = { registerConteoller, loginController };

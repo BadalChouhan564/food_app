@@ -81,4 +81,67 @@ const getAllResturantCntroller = async (req, res) => {
   }
 };
 
-module.exports = { createResturantCntroller, getAllResturantCntroller };
+// GET RESTURNAT BY ID
+const getResturantByIdController = async (req, res) => {
+  try {
+    const resturantId = req.params.id;
+    if (!resturantId) {
+      return res.status(404).send({
+        success: false,
+        message: "Please Provide Resturnat ID",
+      });
+    }
+    //find resturant
+    const resturant = await resturantModel.findById(resturantId);
+    if (!resturant) {
+      return res.status(404).send({
+        success: false,
+        message: "no resturant found",
+      });
+    }
+    res.status(200).send({
+      success: true,
+      resturant,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      message: "Error In Get Resturarnt by id api",
+      error,
+    });
+  }
+};
+
+// DELETE RESTURANT
+
+const deleteResturantController = async (req, res) => {
+  try {
+    const resturantId = req.params.id;
+    if (!resturantId) {
+      return res.status(404).send({
+        success: false,
+        message: "No Resturant Found OR Provide Resturant ID",
+      });
+    }
+    await resturantModel.findByIdAndDelete(resturantId);
+    res.status(200).send({
+      success: true,
+      message: "Resturant Deleted Successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      message: "Eror in delete resturant api",
+      error,
+    });
+  }
+};
+
+module.exports = {
+  createResturantCntroller,
+  getAllResturantCntroller,
+  getResturantByIdController,
+  deleteResturantController,
+};
